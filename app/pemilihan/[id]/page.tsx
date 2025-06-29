@@ -6,17 +6,18 @@ import { ElectionInfo } from '@/components/election/ElectionInfo';
 import { VotingInterface } from '@/components/election/VotingInterface';
 import { Button } from '@/components/ui/Button';
 import { useParams, useRouter } from 'next/navigation';
-import { useAccount, useContractRead } from 'wagmi';
-import { readContract } from '@wagmi/core';
-import { votingSystemAbi } from '@/config/votingSystemAbi';
+import { useAccount } from 'wagmi';
 import { useState, useEffect } from 'react';
 import { Election, ElectionState, VotingType, Candidate } from '@/types/election';
 import { Loader2, AlertTriangle, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 
+// Import mock data
+import { getMockElectionById, getMockCandidatesByElectionId, getMockVoterStatus, mockAddresses } from '@/config/mockContractData';
+
 // Contract address (ganti dengan alamat kontrak setelah deploy)
-const CONTRACT_ADDRESS = '0x0000000000000000000000000000000000000000';
+const CONTRACT_ADDRESS = mockAddresses.contract;
 
 export default function ElectionDetail() {
   const params = useParams();
@@ -31,91 +32,40 @@ export default function ElectionDetail() {
   const [isRegistered, setIsRegistered] = useState(false);
   const [hasVoted, setHasVoted] = useState(false);
   
-  // Fungsi untuk mengambil data pemilihan dan kandidat
+  // Fungsi untuk mengambil data pemilihan dan kandidat dari mock data
   async function fetchElectionData() {
     try {
       setLoading(true);
       setError(null);
       
-      // Ambil informasi pemilihan
-      const electionInfo = await readContract({
-        address: CONTRACT_ADDRESS as `0x${string}`,
-        abi: votingSystemAbi,
-        functionName: 'getElectionInfo',
-        args: [electionId]
-      }) as [string, string, string, bigint, bigint, number, number, number, number, boolean, boolean];
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 800));
       
-      // Ambil data kandidat
-      const candidateCount = Number(electionInfo[7]);
-      const candidates: Candidate[] = [];
+      // Get election data from mock
+      const electionData = getMockElectionById(Number(params.id));
       
-      for (let i = 1; i <= candidateCount; i++) {
-        try {
-          const candidateInfo = await readContract({
-            address: CONTRACT_ADDRESS as `0x${string}`,
-            abi: votingSystemAbi,
-            functionName: 'getCandidateInfo',
-            args: [electionId, BigInt(i)]
-          }) as [string, string, number];
-          
-          candidates.push({
-            id: i,
-            name: candidateInfo[0],
-            description: candidateInfo[1],
-            voteCount: Number(candidateInfo[2])
-          });
-        } catch (err) {
-          console.error(`Error fetching candidate ${i}:`, err);
-        }
+      if (!electionData) {
+        setError('Pemilihan tidak ditemukan');
+        toast.error('Pemilihan tidak ditemukan');
+        return;
       }
       
-      // Cek apakah pengguna terdaftar (jika pemilihan memerlukan registrasi)
+      // Get candidates
+      const candidateData = getMockCandidatesByElectionId(Number(params.id));
+      
+      // Get voter status if address exists
       let registered = false;
-      if (electionInfo[9] && address) { // requiresRegistration dan address ada
-        try {
-          registered = await readContract({
-            address: CONTRACT_ADDRESS as `0x${string}`,
-            abi: votingSystemAbi,
-            functionName: 'isRegisteredVoter',
-            args: [electionId, address]
-          }) as boolean;
-        } catch (err) {
-          console.error('Error checking voter registration:', err);
-        }
-      }
-      
-      // Cek apakah pengguna sudah memilih
       let voted = false;
+      
       if (address) {
-        try {
-          voted = await readContract({
-            address: CONTRACT_ADDRESS as `0x${string}`,
-            abi: votingSystemAbi,
-            functionName: 'hasVoted',
-            args: [electionId, address]
-          }) as boolean;
-        } catch (err) {
-          console.error('Error checking if voted:', err);
-        }
+        const voterStatus = getMockVoterStatus(address, Number(params.id));
+        registered = voterStatus.isRegistered;
+        voted = voterStatus.hasVoted;
       }
       
-      // Set state dengan data yang diperoleh
-      setElection({
-        id: Number(params.id),
-        title: electionInfo[0],
-        description: electionInfo[1],
-        admin: electionInfo[2],
-        startTime: electionInfo[3],
-        endTime: electionInfo[4],
-        state: electionInfo[5] as ElectionState,
-        votingType: electionInfo[6] as VotingType,
-        candidateCount: candidateCount,
-        totalVotes: Number(electionInfo[8]),
-        requiresRegistration: electionInfo[9],
-        resultsVisible: electionInfo[10]
-      });
-      
-      setCandidates(candidates);
+      // Update state
+      setElection(electionData);
+      setCandidates(candidateData);
       setIsRegistered(registered);
       setHasVoted(voted);
       

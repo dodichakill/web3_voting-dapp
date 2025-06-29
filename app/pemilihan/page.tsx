@@ -5,15 +5,16 @@ import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/Button';
 import { useAccount } from 'wagmi';
 import { useState, useEffect } from 'react';
-import { readContract } from '@wagmi/core';
-import { votingSystemAbi } from '@/config/votingSystemAbi';
 import Link from 'next/link';
 import { Vote, Calendar, Clock, User, AlertTriangle, ChevronRight, Loader2 } from 'lucide-react';
 import gsap from 'gsap';
 import toast from 'react-hot-toast';
 
+// Import mock data for development
+import { getMockElections, mockAddresses } from '@/config/mockContractData';
+
 // Contract address (ganti dengan alamat kontrak setelah deploy)
-const CONTRACT_ADDRESS = '0x0000000000000000000000000000000000000000';
+const CONTRACT_ADDRESS = mockAddresses.contract;
 
 // Enum untuk ElectionState
 enum ElectionState {
@@ -52,51 +53,19 @@ export default function ElectionsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fungsi untuk mengambil data pemilihan dari smart contract
+  // Fungsi untuk mengambil data pemilihan dari mock data
   async function fetchElections() {
     try {
       setLoading(true);
       setError(null);
       
-      // Dapatkan jumlah pemilihan
-      const electionCount = await readContract({
-        address: CONTRACT_ADDRESS as `0x${string}`,
-        abi: votingSystemAbi,
-        functionName: 'getElectionCount',
-      }) as number;
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 800));
       
-      // Ambil data setiap pemilihan
-      const electionsData: Election[] = [];
+      // Get elections from mock data
+      const mockElections = getMockElections();
+      setElections(mockElections);
       
-      for (let i = 1; i <= electionCount; i++) {
-        try {
-          const electionInfo = await readContract({
-            address: CONTRACT_ADDRESS as `0x${string}`,
-            abi: votingSystemAbi,
-            functionName: 'getElectionInfo',
-            args: [BigInt(i)]
-          }) as [string, string, string, bigint, bigint, number, number, number, number, boolean, boolean];
-          
-          electionsData.push({
-            id: i,
-            title: electionInfo[0],
-            description: electionInfo[1],
-            admin: electionInfo[2],
-            startTime: electionInfo[3],
-            endTime: electionInfo[4],
-            state: electionInfo[5] as ElectionState,
-            votingType: electionInfo[6] as VotingType,
-            candidateCount: Number(electionInfo[7]),
-            totalVotes: Number(electionInfo[8]),
-            requiresRegistration: electionInfo[9],
-            resultsVisible: electionInfo[10]
-          });
-        } catch (err) {
-          console.error(`Error fetching election ${i}:`, err);
-        }
-      }
-      
-      setElections(electionsData);
     } catch (err) {
       console.error("Error fetching elections:", err);
       setError("Gagal memuat daftar pemilihan. Silakan coba lagi nanti.");

@@ -4,10 +4,11 @@ import { CandidateCard } from './CandidateCard';
 import { Button } from '@/components/ui/Button';
 import { useState, useEffect } from 'react';
 import { useAccount } from 'wagmi';
-import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { votingSystemAbi } from '@/config/votingSystemAbi';
 import { Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+
+// Import mock data helpers
+import { mockVote } from '@/config/mockContractData';
 
 // Tipe data untuk kandidat
 interface Candidate {
@@ -67,16 +68,13 @@ export function VotingInterface({
     });
   };
   
-  // Setup wagmi hook untuk vote
-  const { writeContract, isPending, data: hash } = useWriteContract();
-  
-  // Tunggu transaksi selesai
-  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
-    hash,
-  });
+  // Mock transaction state
+  const [isPending, setIsPending] = useState(false);
+  const [isConfirming, setIsConfirming] = useState(false);
+  const [isConfirmed, setIsConfirmed] = useState(false);
 
   
-  // Handler untuk submit vote
+  // Handler untuk submit vote menggunakan mock data
   const handleVoteSubmit = async () => {
     if (selectedCandidates.length === 0) {
       toast.error('Pilih setidaknya satu kandidat');
@@ -85,28 +83,34 @@ export function VotingInterface({
     
     try {
       setIsSubmitting(true);
+      setIsPending(true);
       
-      if (!isMultipleChoice) {
-        // Single choice
-        writeContract({
-          address: contractAddress,
-          abi: votingSystemAbi,
-          functionName: 'castVote',
-          args: [electionId, BigInt(selectedCandidates[0])]
-        });
-      } else {
-        // Multiple choice
-        writeContract({
-          address: contractAddress,
-          abi: votingSystemAbi,
-          functionName: 'castMultipleVotes',
-          args: [electionId, selectedCandidates.map(id => BigInt(id))]
+      // Simulate blockchain delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      setIsPending(false);
+      setIsConfirming(true);
+      
+      // Call mock vote function
+      if (address) {
+        await mockVote({
+          electionId: Number(electionId),
+          candidateIds: selectedCandidates,
+          voterAddress: address,
+          isMultipleChoice
         });
       }
+      
+      // Simulate confirmation delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      setIsConfirming(false);
+      setIsConfirmed(true);
+      
     } catch (error: any) {
       console.error('Error voting:', error);
       toast.error(error.message || 'Gagal memberikan suara. Silakan coba lagi.');
       setIsSubmitting(false);
+      setIsPending(false);
+      setIsConfirming(false);
     }
   };
   
