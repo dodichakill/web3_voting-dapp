@@ -299,6 +299,98 @@ export function getMockVoterChoices(
   return mockVoterChoices[voter]?.[electionId] || [];
 }
 
+// Function to get all registered voters for an election
+export function getMockRegisteredVoters(electionId: number): { address: string; isRegistered: boolean; hasVoted: boolean; weight: number }[] {
+  const votersList: { address: string; isRegistered: boolean; hasVoted: boolean; weight: number }[] = [];
+  
+  // Iterate through all known voters to find those registered for this election
+  Object.keys(mockVoterStatus).forEach(address => {
+    if (mockVoterStatus[address][electionId]?.isRegistered) {
+      votersList.push({
+        address,
+        isRegistered: true,
+        hasVoted: mockVoterStatus[address][electionId].hasVoted,
+        weight: mockVoterStatus[address][electionId].weight
+      });
+    }
+  });
+  
+  return votersList;
+}
+
+// Function to register a voter for an election
+export function mockRegisterVoter(
+  electionId: number, 
+  voterAddress: string, 
+  weight: number = 1
+): Promise<boolean> {
+  return new Promise((resolve, reject) => {
+    try {
+      // Check if election exists
+      const election = getMockElectionById(electionId);
+      if (!election) {
+        throw new Error('Election not found');
+      }
+      
+      // Check if caller is admin (not implemented in mock)
+      
+      // Create voter entry if it doesn't exist
+      if (!mockVoterStatus[voterAddress]) {
+        mockVoterStatus[voterAddress] = {};
+      }
+      
+      // Check if voter is already registered
+      if (mockVoterStatus[voterAddress][electionId]?.isRegistered) {
+        throw new Error('Voter already registered');
+      }
+      
+      // Register voter
+      mockVoterStatus[voterAddress][electionId] = {
+        isRegistered: true,
+        hasVoted: false,
+        weight: weight
+      };
+      
+      setTimeout(() => resolve(true), 300);
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+// Function to remove a voter from an election
+export function mockRemoveVoter(
+  electionId: number, 
+  voterAddress: string
+): Promise<boolean> {
+  return new Promise((resolve, reject) => {
+    try {
+      // Check if election exists
+      const election = getMockElectionById(electionId);
+      if (!election) {
+        throw new Error('Election not found');
+      }
+      
+      // Check if voter is registered
+      if (!mockVoterStatus[voterAddress]?.[electionId]?.isRegistered) {
+        throw new Error('Voter not registered');
+      }
+      
+      // Check if voter has voted
+      if (mockVoterStatus[voterAddress][electionId].hasVoted) {
+        throw new Error('Cannot remove voter after they\'ve voted');
+      }
+      
+      // Remove voter
+      mockVoterStatus[voterAddress][electionId].isRegistered = false;
+      
+      setTimeout(() => resolve(true), 300);
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
 // Interface for mock voting function parameters
 interface MockVoteParams {
   electionId: number;

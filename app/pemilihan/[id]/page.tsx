@@ -100,6 +100,9 @@ export default function ElectionDetail() {
     isConnected &&
     !hasVoted && 
     (!election.requiresRegistration || isRegistered);
+    
+  // Menentukan apakah pengguna adalah admin pemilihan
+  const isAdmin = address && election && address.toLowerCase() === election.admin.toLowerCase();
 
   return (
     <main className="flex min-h-screen flex-col bg-gradient-to-b from-black to-gray-900 text-white">
@@ -154,6 +157,28 @@ export default function ElectionDetail() {
                 isRegistered={isRegistered}
                 hasVoted={hasVoted}
               />
+              
+              {/* Admin Panel - only visible to election admin */}
+              {isAdmin && (
+                <div className="mt-6 mb-6 p-4 border border-blue-800 rounded-xl bg-blue-900/20 backdrop-blur-sm">
+                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-xl mb-1">Panel Admin</h3>
+                      <p className="text-gray-400 text-sm">Kelola pemilihan ini sebagai administrator</p>
+                    </div>
+                    <div className="mt-4 md:mt-0 space-x-2">
+                      <Link href={`/pemilihan/${params.id}/kelola-pemilih`}>
+                        <Button variant="secondary" className="flex items-center">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+                          </svg>
+                          Kelola Pemilih
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              )}
               
               <VotingInterface
                 electionId={electionId}
